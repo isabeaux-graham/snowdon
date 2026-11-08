@@ -66,13 +66,22 @@ button:focus-visible{outline:2px solid #c8283c;outline-offset:2px}
 #thumb.on{opacity:1;transform:none}
 @media (max-width:760px){
  header{left:16px}
- #dock{gap:8px}
+ /* the two cards become a swipeable row; it bleeds to the screen edges so a sliver of the next card peeks in */
+ #dock{left:0;right:0;bottom:calc(6px + env(safe-area-inset-bottom,0px));flex-wrap:nowrap;gap:10px;padding:6px 16px 10px;
+  overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-padding:0 16px;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;pointer-events:auto}
+ #dock::-webkit-scrollbar{display:none}
  .glass{border-radius:22px;padding:11px 16px 12px}
- #trip,#hover{flex:1 1 100%}
- #trip{padding-top:16px}
- .stats dd{font-size:17px}
- #st{gap:20px 18px}
+ #trip,#hover{flex:0 0 calc(100% - 44px);scroll-snap-align:start;scroll-snap-stop:always}
+ #trip{padding-top:16px;min-width:0}
+ /* phones: total Time and Speed are left out so each card's stats fit on one row */
+ .stats .no-m,.stats .mn{display:none}
+ #trip .stats{min-width:0}
+ #st{flex-wrap:nowrap;gap:0 10px}
+ #hd{grid-template-columns:repeat(4,auto);justify-content:space-between;gap:0 10px}
+ .stats dd{font-size:16px}
 }
+@media (max-width:380px){#st,#hd{column-gap:6px}.stats dd{font-size:15px}.stats small.n{font-size:10.5px}}
+@media (max-width:340px){.glass{padding-left:12px;padding-right:12px}#st,#hd{column-gap:4px}.stats dd{font-size:14px}.stats dt{font-size:10.5px}}
 
 /* summit marker: a thin pole in the scene plus a label that follows its tip */
 #sum{position:fixed;left:0;top:0;pointer-events:none;will-change:transform;transition:opacity .2s}
@@ -94,7 +103,7 @@ body.intro #sum{opacity:0!important}
 @media (max-width:760px){.coords{left:16px}.ttl{left:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px))}#go{left:16px;right:16px;justify-content:center;padding:13px}}
 @media (prefers-reduced-motion:reduce){#intro{transition:none}}
 </style></head><body class="intro">
-<header><h1>Yr Wyddfa</h1><p>Snowdon in slices. Via Miners’ Track and Watkin Path.</p><p class="date">August 25, 2026</p>
+<header><h1>Yr Wyddfa</h1><p>Snowdon cut into slices. Up the Miners’ Track, down the Watkin Path.</p><p class="date">August 25, 2026</p>
  <div class="seg"><button data-m="layers">Horizontal</button><button data-m="ribs" class="on">Vertical</button></div></header>
 <footer id="dock">
  <section id="trip" class="glass" aria-label="Trip totals"><dl id="st" class="stats"></dl></section>
@@ -137,7 +146,7 @@ const R=new THREE.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devic
 R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;R.toneMapping=THREE.ACESFilmicToneMapping;R.outputEncoding=THREE.sRGBEncoding;
 document.body.prepend(R.domElement);
 const S=new THREE.Scene();S.fog=new THREE.Fog(bgc,260,520);
-const cam=new THREE.PerspectiveCamera(36,1,1,1200);cam.position.set(190,28,72);
+const cam=new THREE.PerspectiveCamera(36,1,1,1200);cam.position.set(190,32,72);
 const oc=new THREE.OrbitControls(cam,R.domElement);oc.target.set(55,9,65);oc.enableDamping=true;oc.maxPolarAngle=1.52;oc.update();
 S.add(new THREE.HemisphereLight(0xfff4e0,0x6f8a60,.8));
 const sun=new THREE.DirectionalLight(0xfff0d6,2.0);sun.position.set(-60,105,120);sun.target.position.set(62,0,65);S.add(sun,sun.target);
@@ -243,12 +252,12 @@ function placeSummit(){const g=mode==='layers'?gL:gR,pts=g.userData.pts,k=g.user
 const hov=new THREE.Mesh(new THREE.SphereGeometry(.48,20,14),new THREE.MeshBasicMaterial({color:0xffffff}));hov.visible=false;S.add(hov);
 const hm=s=>{s=Math.round(s/60);return Math.floor(s/60)+' h '+String(s%60).padStart(2,'0')+' min';};
 const pcv=p=>{const s=Math.round(p*60);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
-const pc=p=>pcv(p)+' min/km';
+const pc=p=>pcv(p)+' min/km',pcs=p=>pcv(p)+'<span class="mn"> min</span>/km';   // pcs: the "min" drops out on phones to save width
 const a0=rt[0],aS=rt[sm],aE=rt[nR-1],upD=aS.d-a0.d,dnD=aE.d-aS.d,upT=aS.t-a0.t,dnT=aE.t-aS.t;
 const cell=(l,v,u,note,cls)=>'<div'+(cls?' class="'+cls+'"':'')+'><dt>'+l+'</dt><dd>'+v+(u?' <small>'+u+'</small>':'')+'</dd>'+(note?'<small class="n">'+note+'</small>':'')+'</div>';
-$('st').innerHTML=[cell('Distance',(aE.d/1000).toFixed(1),'km'),cell('Total climb',Math.round(aE.c),'m'),cell('Time',hm(aE.t),'','moving '+hm(D0.mv)),
- cell('Time up',hm(upT),'','avg '+pc(upT/60/(upD/1000)),'t-up'),cell('Time down',hm(dnT),'','avg '+pc(dnT/60/(dnD/1000)),'t-dn')].join('');
-$('hd').innerHTML=['Distance','Climbed so far','Pace','Speed','Gradient'].map(l=>cell(l,'–')).join('');
+$('st').innerHTML=[cell('Distance',(aE.d/1000).toFixed(1),'km'),cell('Total climb',Math.round(aE.c),'m'),cell('Time',hm(aE.t),'','moving '+hm(D0.mv),'no-m'),
+ cell('Time up',hm(upT),'','avg '+pcs(upT/60/(upD/1000)),'t-up'),cell('Time down',hm(dnT),'','avg '+pcs(dnT/60/(dnD/1000)),'t-dn')].join('');
+$('hd').innerHTML=['Distance','Climbed so far','Pace','Speed','Gradient'].map(l=>cell(l,'–','','',l==='Speed'?'no-m':'')).join('');
 const hdd=$('hd').querySelectorAll('dd'),hbox=$('hover'),scrub=$('scrub'),thumb=$('thumb');
 scrub.style.setProperty('--p',(aS.d/aE.d*100).toFixed(2)+'%');const tk=(n,e)=>n+'<span>'+Math.round(e).toLocaleString('en-GB')+' m</span>';
 $('sum').innerHTML='<div><b>Yr Wyddfa</b><span>'+Math.round(aS.e).toLocaleString('en-GB')+' m</span></div>';
@@ -273,11 +282,14 @@ function show(i){curI=i;const a=rt[i],lo=rt[Math.max(0,i-8)],hi=rt[Math.min(nR-1
 function focus(i){const g=mode==='layers'?gL:gR,k=g.userData.first[i];if(k===undefined)return;const p=g.userData.pts[k],sc=g.scale.y;
  hov.position.set(p[0],p[1]*sc+.1,p[2]);hov.visible=true;show(i);}
 const hide=()=>{hov.visible=false;idle();},v3=new THREE.Vector3();
+// on phones the readout card sits off to the side of the trip card: slide it into view when the trail is tapped
+const phone=matchMedia('(max-width:760px)');
+function reveal(){if(!phone.matches)return;const d=$('dock'),x=Math.max(0,hbox.offsetLeft-16);if(Math.abs(d.scrollLeft-x)>8)d.scrollTo({left:x,behavior:'smooth'});}
 function pick(ev){if(ev.type==='pointermove'&&ev.buttons)return hide();
  const g=mode==='layers'?gL:gR,pts=g.userData.pts,sc=g.scale.y,rc=R.domElement.getBoundingClientRect();let best=-1,bd=20*20;
  for(let i=0;i<pts.length;i++){v3.set(pts[i][0],pts[i][1]*sc,pts[i][2]).project(cam);if(v3.z>1)continue;
   const d=((v3.x+1)/2*rc.width+rc.left-ev.clientX)**2+((1-v3.y)/2*rc.height+rc.top-ev.clientY)**2;if(d<bd){bd=d;best=i;}}
- if(best<0){if(ev.pointerType==='touch')return;return hide();}focus(pts[best][3]);}
+ if(best<0){if(ev.pointerType==='touch')return;return hide();}focus(pts[best][3]);if(ev.pointerType==='touch')reveal();}
 const dom=R.domElement;['pointermove','pointerdown'].forEach(e=>dom.addEventListener(e,pick));dom.addEventListener('pointerleave',ev=>{if(ev.pointerType!=='touch')hide();});
 function scrubAt(ev){const r=scrub.getBoundingClientRect(),dist=Math.max(0,Math.min(1,(ev.clientX-r.left)/r.width))*aE.d;
  let lo=0,hi=nR-1;while(lo<hi){const m=(lo+hi)>>1;if(rt[m].d<dist)lo=m+1;else hi=m;}focus(lo);}
