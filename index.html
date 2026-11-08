@@ -148,6 +148,9 @@ document.body.prepend(R.domElement);
 const S=new THREE.Scene();S.fog=new THREE.Fog(bgc,260,520);
 const cam=new THREE.PerspectiveCamera(36,1,1,1200);cam.position.set(190,32,72);
 const oc=new THREE.OrbitControls(cam,R.domElement);oc.target.set(55,9,65);oc.enableDamping=true;oc.maxPolarAngle=1.52;oc.update();
+const PHONE_ZOOM=2;   // bigger = further away (zoomed out), smaller = closer (zoomed in)
+if(innerWidth<=760){cam.position.sub(oc.target).multiplyScalar(PHONE_ZOOM).add(oc.target);oc.update();}
+
 S.add(new THREE.HemisphereLight(0xfff4e0,0x6f8a60,.8));
 const sun=new THREE.DirectionalLight(0xfff0d6,2.0);sun.position.set(-60,105,120);sun.target.position.set(62,0,65);S.add(sun,sun.target);
 sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);Object.assign(sun.shadow.camera,{left:-120,right:120,top:120,bottom:-120,near:1,far:400});sun.shadow.bias=-.0004;sun.shadow.normalBias=.06;
